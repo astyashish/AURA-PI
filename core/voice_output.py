@@ -47,16 +47,21 @@ class VoiceOutput:
             pass
         print("[TTS] No TTS engine available — silent mode")
 
-    def speak(self, text: str, blocking: bool = True):
+    def speak(self, text: str, blocking: bool = True, lang: str = "en"):
         """Speak text aloud."""
         if not self.enabled or not text.strip():
             return
 
         def _do_speak():
-            if self.engine == "piper":
+            if self.engine == "piper" and lang == "en":
                 self._speak_piper(text)
-            elif self.engine == "espeak":
-                subprocess.run(["espeak", "-s", "150", "-p", "50", text], timeout=30)
+            elif self.engine in ("piper", "espeak"):
+                # Use espeak for non-English, or if engine is natively espeak
+                lang_code = lang if lang else "en"
+                try:
+                    subprocess.run(["espeak", "-v", lang_code, "-s", "150", "-p", "50", text], timeout=30)
+                except Exception:
+                    pass
             elif self.engine == "pyttsx3":
                 self._pyttsx3.say(text)
                 self._pyttsx3.runAndWait()
