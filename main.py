@@ -34,13 +34,13 @@ def check_ollama():
     if not llm.is_available():
         print("⚠  WARNING: Ollama is not running!")
         print("   Start it with: ollama serve")
-        print("   Then pull a model: ollama pull gemma2:2b")
+        print("   Then pull a model: ollama pull qwen2.5:3b")
         print("   Jarvis will still start but LLM won't work until Ollama is running.")
     else:
         models = llm.list_models()
         print(f"✓  Ollama connected. Models available: {', '.join(models) if models else 'none'}")
         if not models:
-            print("   Pull a model: ollama pull gemma2:2b")
+            print("   Pull a model: ollama pull qwen2.5:3b")
 
 def start_voice_wake_listener(config):
     """Start background wake word listener (if voice enabled)."""
