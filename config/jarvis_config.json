@@ -6,10 +6,10 @@
     "response_timeout": 30
   },
   "models": {
-    "default": "gemma2:2b",
+    "default": "qwen2.5:3b",
     "vision": "llava:7b",
     "fast": "qwen2.5:0.5b",
-    "available": ["gemma2:2b", "qwen2.5:0.5b", "llava:7b", "mistral:7b"]
+    "available": ["qwen2.5:3b", "qwen2.5:0.5b", "llava:7b", "gemma2:2b", "mistral:7b"]
   },
   "ollama": {
     "host": "http://localhost:11434",
