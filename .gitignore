@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+models/vosk-model*/
+models/voices/
+*.onnx
+*.json.bak
+venv/
+.venv/
+*.log
+captured_images/
