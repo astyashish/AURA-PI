@@ -1,0 +1,35 @@
+{
+  "jarvis": {
+    "name": "Jarvis",
+    "personality": "You are Jarvis, an advanced AI assistant running locally on a Raspberry Pi. You are helpful, precise, and slightly formal — like a butler with engineering expertise. You can control hardware devices, analyze images, answer questions, and execute commands. When controlling devices, always respond with a JSON action block AND a spoken confirmation. Keep responses concise.",
+    "wake_word": "jarvis",
+    "response_timeout": 30
+  },
+  "models": {
+    "default": "gemma2:2b",
+    "vision": "llava:7b",
+    "fast": "qwen2.5:0.5b",
+    "available": ["gemma2:2b", "qwen2.5:0.5b", "llava:7b", "mistral:7b"]
+  },
+  "ollama": {
+    "host": "http://localhost:11434",
+    "timeout": 60
+  },
+  "voice": {
+    "enabled": true,
+    "wake_word": "jarvis",
+    "listen_timeout": 10,
+    "silence_threshold": 500,
+    "sample_rate": 16000
+  },
+  "web": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false
+  },
+  "hardware": {
+    "gpio_enabled": true,
+    "camera_enabled": true,
+    "platform_auto_detect": true
+  }
+}

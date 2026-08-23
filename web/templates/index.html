@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS — Local AI Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<!-- Official socket.io CDN (no SES/lockdown wrapper) -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23000d18' stroke='%2300d4ff' stroke-width='4'/><text y='.9em' x='18' font-size='58' fill='%2300d4ff'>J</text></svg>">
+<link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+<div class="scanline"></div>
+<div class="bg-grid"></div>
+
+<!-- HEADER -->
+<header class="hud-header">
+  <div class="hud-logo">
+    <div class="jarvis-ring" id="jarvisRing">
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="ring r3"></div>
+      <div class="core-dot"></div>
+    </div>
+    <div class="title-block">
+      <h1>J·A·R·V·I·S</h1>
+      <p>Just A Rather Very Intelligent System · v2.0</p>
+    </div>
+  </div>
+  <div class="hud-status">
+    <div class="status-pill" id="ollamaStatus">⬤ LLM —</div>
+    <select class="status-pill model-select" id="modelSelect" title="Model"></select>
+    <div class="status-pill" id="ttsStatus">🔊 VOICE READY</div>
+    <button class="status-pill clickable" id="clearBtn" title="Clear conversation memory">🗑 MEMORY</button>
+  </div>
+</header>
+
+<!-- MODE TABS -->
+<nav class="tabs">
+  <button class="tab active" data-tab="chat">💬 CHAT</button>
+  <button class="tab" data-tab="voice">🎙 VOICE</button>
+  <button class="tab" data-tab="devices">⚡ DEVICES</button>
+  <button class="tab" data-tab="camera">📷 CAMERA</button>
+</nav>
+
+<main class="content">
+
+  <!-- ─── CHAT TAB ───────────────────────────────────────── -->
+  <section class="view active" id="view-chat">
+    <div class="chat-shell">
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg system-msg">
+          <span class="msg-label">JARVIS</span>
+          <div class="msg-text">Systems online. I am ready, sir. Try: <em>"turn on living room light"</em>, <em>"dim bedroom light to 30%"</em>, or <em>"what do you see?"</em></div>
+        </div>
+      </div>
+      <div class="thinking-bar" id="thinkingBar">
+        <div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div>
+        <span>Processing...</span>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Type a command or question... (Enter to send)" autocomplete="off">
+        <button class="btn-mic" id="dictBtn" title="Voice dictation">🎤</button>
+        <button class="btn-send" id="sendBtn">SEND ▶</button>
+      </div>
+      <div class="quick-commands">
+        <span class="qc-label">QUICK</span>
+        <button class="qc-btn" data-cmd="Turn on living room light">💡 Living ON</button>
+        <button class="qc-btn" data-cmd="Turn off all lights">🌑 All OFF</button>
+        <button class="qc-btn" data-cmd="Dim bedroom light to 25%">🛏 Dim 25%</button>
+        <button class="qc-btn" data-cmd="Turn on the ceiling fan">🌀 Fan ON</button>
+        <button class="qc-btn" data-cmd="What do you see?">📷 Look</button>
+        <button class="qc-btn" data-cmd="What's the system status?">📊 Status</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── VOICE TAB ──────────────────────────────────────── -->
+  <section class="view" id="view-voice">
+    <div class="voice-shell">
+      <div class="voice-orb-wrap">
+        <div class="voice-orb" id="voiceOrb">
+          <div class="orb-ring or1"></div>
+          <div class="orb-ring or2"></div>
+          <div class="orb-ring or3"></div>
+          <div class="orb-core"></div>
+          <div class="orb-label" id="voiceState">STANDBY</div>
+        </div>
+      </div>
+      <div class="voice-transcript" id="voiceTranscript">
+        <span class="vt-placeholder">Press the button below and start speaking — Jarvis will reply and keep listening.</span>
+      </div>
+      <div class="voice-controls">
+        <button class="btn-voice-start" id="voiceStartBtn">▶  START CONVERSATION</button>
+        <button class="btn-voice-stop" id="voiceStopBtn" disabled>■  STOP</button>
+        <label class="voice-toggle">
+          <input type="checkbox" id="continuousToggle" checked> Continuous mode (auto-listen)
+        </label>
+        <label class="voice-toggle">
+          <input type="checkbox" id="speakToggle" checked> Speak replies
+        </label>
+        <select id="voiceSelect" class="voice-select" title="TTS voice"></select>
+      </div>
+      <div class="voice-help">
+        <div>Say: <em>"Turn on bedroom light"</em> · <em>"Dim desk light to 40 percent"</em> · <em>"What time is it"</em> · <em>"What do you see"</em></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── DEVICES TAB ────────────────────────────────────── -->
+  <section class="view" id="view-devices">
+    <div class="devices-toolbar">
+      <button class="btn-add" id="addDeviceBtn">＋  ADD DEVICE</button>
+      <button class="btn-add ghost" id="addRoomBtn">＋  ADD ROOM</button>
+      <div class="spacer"></div>
+      <button class="btn-add ghost" id="allOnBtn">⚡ ALL ON</button>
+      <button class="btn-add ghost danger" id="allOffBtn">⏻ ALL OFF</button>
+    </div>
+    <div class="rooms-container" id="roomsContainer"></div>
+  </section>
+
+  <!-- ─── CAMERA TAB ─────────────────────────────────────── -->
+  <section class="view" id="view-camera">
+    <div class="camera-shell">
+      <div class="camera-frame">
+        <canvas id="cameraCanvas" width="640" height="480"></canvas>
+        <div class="cam-overlay" id="camOverlay"><span>CAMERA STANDBY</span></div>
+        <div class="cam-corners"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="camera-side">
+        <button class="cam-btn primary" id="capBtn">📷 CAPTURE & ANALYZE</button>
+        <button class="cam-btn" id="livePrevBtn">▶ LIVE PREVIEW</button>
+        <input type="text" id="camPrompt" class="chat-input" placeholder="Ask about the image...">
+        <button class="cam-btn" id="askImgBtn">❓ ASK ABOUT IMAGE</button>
+        <div class="cam-result" id="camResult">
+          <div class="cam-result-label">VISION OUTPUT</div>
+          <div class="cam-result-body" id="camResultBody">No analysis yet.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- LOG STRIP -->
+<footer class="hud-footer">
+  <div class="footer-left">JARVIS-PI · 100% LOCAL · NO CLOUD</div>
+  <div class="log-strip" id="logStrip"></div>
+  <div class="footer-right" id="footerStatus">STANDING BY</div>
+</footer>
+
+<!-- ─── ADD-DEVICE MODAL ───────────────────────────────── -->
+<div class="modal-backdrop" id="addDeviceModal">
+  <div class="modal">
+    <div class="modal-title">ADD NEW DEVICE</div>
+    <div class="modal-body">
+      <label>Name <input id="ndName" placeholder="e.g. Reading Lamp"></label>
+      <label>Type
+        <select id="ndType">
+          <option value="light">Light 💡</option>
+          <option value="fan">Fan 🌀</option>
+          <option value="relay">Relay 🔌</option>
+          <option value="outlet">Outlet 🔌</option>
+        </select>
+      </label>
+      <label>Room <select id="ndRoom"></select></label>
+      <label>Icon (emoji) <input id="ndIcon" value="💡" maxlength="3"></label>
+      <label>GPIO pin <input id="ndPin" type="number" value="26" min="2" max="27"></label>
+      <label class="cb"><input type="checkbox" id="ndDimmable" checked> Dimmable</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-add ghost" data-close>Cancel</button>
+      <button class="btn-add" id="ndSave">CREATE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ADD-ROOM MODAL ─────────────────────────────────── -->
+<div class="modal-backdrop" id="addRoomModal">
+  <div class="modal">
+    <div class="modal-title">ADD NEW ROOM</div>
+    <div class="modal-body">
+      <label>Name <input id="nrName" placeholder="e.g. Garage"></label>
+      <label>Icon (emoji) <input id="nrIcon" value="🏠" maxlength="3"></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-add ghost" data-close>Cancel</button>
+      <button class="btn-add" id="nrSave">CREATE</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

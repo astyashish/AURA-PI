@@ -1,0 +1,251 @@
+{
+  "rooms": [
+    {
+      "id": "living_room",
+      "name": "Living Room",
+      "icon": "🛋️"
+    },
+    {
+      "id": "bedroom",
+      "name": "Bedroom",
+      "icon": "🛏️"
+    },
+    {
+      "id": "kitchen",
+      "name": "Kitchen",
+      "icon": "🍳"
+    },
+    {
+      "id": "office",
+      "name": "Office",
+      "icon": "💼"
+    },
+    {
+      "id": "car_room",
+      "name": "car room",
+      "icon": "🏠"
+    },
+    {
+      "id": "akash",
+      "name": "akash",
+      "icon": "🏠"
+    },
+    {
+      "id": "ayush",
+      "name": "ayush",
+      "icon": "🏠"
+    },
+    {
+      "id": "abc",
+      "name": "abc",
+      "icon": "🏠"
+    },
+    {
+      "id": "ashish2",
+      "name": "ashish2",
+      "icon": "🏠"
+    },
+    {
+      "id": "a",
+      "name": "A",
+      "icon": "🏠"
+    }
+  ],
+  "devices": [
+    {
+      "id": "living_room_light",
+      "name": "Living Room Light",
+      "type": "light",
+      "room": "living_room",
+      "gpio_pin": 17,
+      "state": true,
+      "intensity": 100,
+      "dimmable": true,
+      "icon": "💡",
+      "aliases": [
+        "living room light",
+        "main light",
+        "hall light",
+        "lounge light"
+      ]
+    },
+    {
+      "id": "living_room_lamp",
+      "name": "Living Room Lamp",
+      "type": "light",
+      "room": "living_room",
+      "gpio_pin": 4,
+      "state": false,
+      "intensity": 70,
+      "dimmable": true,
+      "icon": "🪔",
+      "aliases": [
+        "lamp",
+        "table lamp",
+        "living room lamp"
+      ]
+    },
+    {
+      "id": "bedroom_light",
+      "name": "Bedroom Light",
+      "type": "light",
+      "room": "bedroom",
+      "gpio_pin": 27,
+      "state": true,
+      "intensity": 25,
+      "dimmable": true,
+      "icon": "🛏️",
+      "aliases": [
+        "bedroom light",
+        "bed light",
+        "room light"
+      ]
+    },
+    {
+      "id": "bedroom_night_light",
+      "name": "Night Light",
+      "type": "light",
+      "room": "bedroom",
+      "gpio_pin": 18,
+      "state": false,
+      "intensity": 50,
+      "dimmable": true,
+      "icon": "🌙",
+      "aliases": [
+        "night light",
+        "bedside lamp"
+      ]
+    },
+    {
+      "id": "desk_light",
+      "name": "Desk Light",
+      "type": "light",
+      "room": "office",
+      "gpio_pin": 5,
+      "state": false,
+      "intensity": 60,
+      "dimmable": true,
+      "icon": "🔦",
+      "aliases": [
+        "desk light",
+        "work light",
+        "study light"
+      ]
+    },
+    {
+      "id": "kitchen_light",
+      "name": "Kitchen Light",
+      "type": "light",
+      "room": "kitchen",
+      "gpio_pin": 19,
+      "state": false,
+      "intensity": 100,
+      "dimmable": true,
+      "icon": "💡",
+      "aliases": [
+        "kitchen light",
+        "cooking light"
+      ]
+    },
+    {
+      "id": "ceiling_fan",
+      "name": "Ceiling Fan",
+      "type": "fan",
+      "room": "living_room",
+      "gpio_pin": 6,
+      "state": false,
+      "intensity": 50,
+      "dimmable": true,
+      "icon": "🌀",
+      "aliases": [
+        "fan",
+        "ceiling fan",
+        "living room fan"
+      ]
+    },
+    {
+      "id": "bedroom_fan",
+      "name": "Bedroom Fan",
+      "type": "fan",
+      "room": "bedroom",
+      "gpio_pin": 13,
+      "state": false,
+      "intensity": 70,
+      "dimmable": true,
+      "icon": "🌀",
+      "aliases": [
+        "bedroom fan"
+      ]
+    },
+    {
+      "id": "ashish",
+      "name": "ashish",
+      "type": "light",
+      "room": "car_room",
+      "gpio_pin": 26,
+      "state": false,
+      "intensity": 100,
+      "dimmable": true,
+      "icon": "💡",
+      "aliases": [
+        "ashish"
+      ]
+    },
+    {
+      "id": "lamp",
+      "name": "lamp",
+      "type": "light",
+      "room": "living_room",
+      "gpio_pin": 26,
+      "state": false,
+      "intensity": 100,
+      "dimmable": true,
+      "icon": "💡",
+      "aliases": [
+        "lamp"
+      ]
+    },
+    {
+      "id": "fast_fan",
+      "name": "fast fan",
+      "type": "fan",
+      "room": "ayush",
+      "gpio_pin": 26,
+      "state": false,
+      "intensity": 0,
+      "dimmable": true,
+      "icon": "💡",
+      "aliases": [
+        "fast fan"
+      ]
+    },
+    {
+      "id": "vv",
+      "name": "vv",
+      "type": "light",
+      "room": "a",
+      "gpio_pin": 26,
+      "state": false,
+      "intensity": 100,
+      "dimmable": true,
+      "icon": "💡",
+      "aliases": [
+        "vv"
+      ]
+    }
+  ],
+  "status_leds": {
+    "thinking": {
+      "pin": 22,
+      "color": "blue"
+    },
+    "speaking": {
+      "pin": 23,
+      "color": "green"
+    },
+    "camera": {
+      "pin": 24,
+      "color": "red"
+    }
+  }
+}
