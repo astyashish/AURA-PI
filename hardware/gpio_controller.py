@@ -19,6 +19,14 @@ if _is_raspberry_pi() and os.getenv("ENABLE_GPIO", "true").lower() == "true":
         import RPi.GPIO as GPIO  # type: ignore
         # Test if this RPi.GPIO version actually supports this board (e.g. Pi 5 RP1 chip)
         GPIO.setmode(GPIO.BCM)
+        # setup() is where the SOC peripheral base address error actually triggers
+        try:
+            GPIO.setup(26, GPIO.OUT)
+            GPIO.cleanup(26)
+        except RuntimeError as e:
+            if "SOC peripheral base address" in str(e):
+                raise RuntimeError("Incompatible RPi.GPIO (Pi 5 detected?)")
+            
         REAL_GPIO = True
         print("[GPIO] Running on Raspberry Pi — real GPIO enabled")
     except (ImportError, RuntimeError) as e:
