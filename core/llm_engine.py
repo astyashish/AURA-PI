@@ -33,11 +33,23 @@ Stay under 5 short sentences. Do not invent things that aren't there."""
 
 
 class LLMEngine:
-    def __init__(self, host="http://localhost:11434"):
-        self.host = host
-        self.default_model = "qwen2.5:0.5b"
-        self.vision_model = "llava:7b"
-        self.fast_model = "qwen2.5:0.5b"
+    def __init__(self, host=None):
+        import os
+        
+        config = {}
+        try:
+            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "jarvis_config.json")
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        except Exception:
+            pass
+            
+        models_cfg = config.get("models", {})
+        
+        self.host = host or config.get("ollama", {}).get("host", "http://localhost:11434")
+        self.default_model = models_cfg.get("default", "qwen2.5:3b")
+        self.vision_model = models_cfg.get("vision", "llava:7b")
+        self.fast_model = models_cfg.get("fast", "qwen2.5:0.5b")
         self.conversation_history = []
         self.max_history = 20
         self._device_context = ""
