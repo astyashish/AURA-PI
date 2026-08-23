@@ -64,17 +64,22 @@ def start_voice_wake_listener(config):
     llm = LLMEngine()
     gpio = GPIOController()
     router = CommandRouter(gpio)
+    
+    from core.conversation_agent import ConversationAgent
+    agent = ConversationAgent(stt, tts, llm, router)
+    wake_word = config.get("aura", {}).get("wake_word", "aura")
 
-    def handle_voice_command(text):
-        print(f"[Voice Command] {text}")
-        response = llm.chat(text)
-        result = router.parse_and_execute(response)
-        tts.speak(result["spoken"], blocking=False)
+    def _main_voice_loop():
+        while True:
+            # 1. Wait for wake word (blocks without eating 100% CPU, uses Vosk)
+            stt.wait_for_wake_word(wake_word)
+            
+            # 2. Enter conversational mode (uses Whisper for multi-turn)
+            agent.start_conversation()
 
-    wm = WakeWordManager(stt, tts, wake_word=config["aura"]["wake_word"],
-                         on_command_callback=handle_voice_command)
-    wm.start()
-    print(f"✓  Wake word listener active — say '{config['aura']['wake_word']}'")
+    # Start the continuous voice loop
+    t = threading.Thread(target=_main_voice_loop, daemon=True)
+    t.start()
 
 def main():
     print_banner()
