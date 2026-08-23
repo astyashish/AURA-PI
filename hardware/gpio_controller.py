@@ -17,12 +17,14 @@ def _is_raspberry_pi():
 if _is_raspberry_pi() and os.getenv("ENABLE_GPIO", "true").lower() == "true":
     try:
         import RPi.GPIO as GPIO  # type: ignore
+        # Test if this RPi.GPIO version actually supports this board (e.g. Pi 5 RP1 chip)
+        GPIO.setmode(GPIO.BCM)
         REAL_GPIO = True
         print("[GPIO] Running on Raspberry Pi — real GPIO enabled")
-    except ImportError:
+    except (ImportError, RuntimeError) as e:
         from hardware import mock_gpio as GPIO
         REAL_GPIO = False
-        print("[GPIO] RPi.GPIO not found — using mock")
+        print(f"[GPIO] RPi.GPIO not available or incompatible ({e}) — using mock")
 else:
     from hardware import mock_gpio as GPIO
     REAL_GPIO = False
