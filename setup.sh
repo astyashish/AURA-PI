@@ -49,21 +49,18 @@ ollama serve &
 OLLAMA_PID=$!
 sleep 5
 
+echo "  Downloading qwen2.5:3b (default model, recommended)..."
+ollama pull qwen2.5:3b || echo "  Warning: qwen2.5:3b pull failed"
+
 echo "  Downloading qwen2.5:0.5b (fastest, minimal RAM)..."
 ollama pull qwen2.5:0.5b || echo "  Warning: qwen2.5:0.5b pull failed"
 
-echo "  Downloading llama3.2:1b (smart, fast for Pi 5)..."
-ollama pull llama3.2:1b || echo "  Warning: llama3.2:1b pull failed"
-
-echo "  Downloading gemma2:2b (balanced)..."
+echo "  Downloading gemma2:2b (balanced alternative)..."
 ollama pull gemma2:2b || echo "  Warning: gemma2:2b pull failed"
 
 echo "  Downloading llava:7b (vision/image analysis, ~4GB)..."
-read -p "  Download llava vision model? (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  ollama pull llava:7b || echo "  Warning: llava:7b pull failed"
-fi
+echo "  Automatically pulling vision model for fully automated setup."
+ollama pull llava:7b || echo "  Warning: llava:7b pull failed"
 
 kill $OLLAMA_PID 2>/dev/null || true
 
