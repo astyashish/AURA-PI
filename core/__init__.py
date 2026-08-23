@@ -1,1 +1,1 @@
-# Jarvis Core Package
+# Aura Core Package

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   JARVIS-PI v2 Dashboard — Sci-Fi HUD
+   AURA-PI v2 Dashboard — Sci-Fi HUD
    ═══════════════════════════════════════════════════════ */
 
 :root {
@@ -66,7 +66,7 @@ html, body {
 }
 .title-block p { font-size: 9px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; margin-top: 3px; }
 
-.jarvis-ring { width: 56px; height: 56px; position: relative; display: flex; align-items: center; justify-content: center; }
+.aura-ring { width: 56px; height: 56px; position: relative; display: flex; align-items: center; justify-content: center; }
 .ring { position: absolute; border-radius: 50%; border: 1px solid var(--accent); }
 .r1 { width: 52px; height: 52px; animation: spin 9s linear infinite; opacity: .55; }
 .r2 { width: 38px; height: 38px; animation: spin 6s linear infinite reverse; opacity: .8; border-color: var(--green); }
@@ -75,11 +75,11 @@ html, body {
 .core-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%;
   box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent); animation: pulse 2s ease-in-out infinite; }
 @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.5); opacity: .6; } }
-.jarvis-ring.thinking .r1 { animation-duration: 1.2s; }
-.jarvis-ring.thinking .r2 { animation-duration: .8s; }
-.jarvis-ring.thinking .r3 { animation-duration: .4s; }
-.jarvis-ring.thinking .core-dot { background: var(--amber); box-shadow: 0 0 14px var(--amber); }
-.jarvis-ring.speaking .core-dot { background: var(--green); box-shadow: 0 0 14px var(--green); }
+.aura-ring.thinking .r1 { animation-duration: 1.2s; }
+.aura-ring.thinking .r2 { animation-duration: .8s; }
+.aura-ring.thinking .r3 { animation-duration: .4s; }
+.aura-ring.thinking .core-dot { background: var(--amber); box-shadow: 0 0 14px var(--amber); }
+.aura-ring.speaking .core-dot { background: var(--green); box-shadow: 0 0 14px var(--green); }
 
 .hud-status { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .status-pill {
@@ -141,7 +141,7 @@ html, body {
   color: #d8f8a8;
   padding: 10px 14px; border-radius: 12px 12px 2px 12px; max-width: 78%;
 }
-.system-msg .msg-text, .jarvis-msg .msg-text {
+.system-msg .msg-text, .aura-msg .msg-text {
   background: linear-gradient(135deg, #04111c, #02080f);
   border: 1px solid var(--accent-dim);
   color: var(--text); padding: 10px 14px; line-height: 1.55;
@@ -233,7 +233,7 @@ html, body {
 }
 .vt-placeholder { color: var(--text-dim); font-style: italic; }
 .vt-user { color: var(--amber); }
-.vt-jarvis { color: var(--accent); }
+.vt-aura { color: var(--accent); }
 .vt-partial { color: var(--text-dim); }
 
 .voice-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; margin-top: 8px; }

@@ -1,8 +1,8 @@
 #!/bin/bash
-# JARVIS-PI Quick Start for Raspberry Pi
+# AURA-PI Quick Start for Raspberry Pi
 
 echo "╔══════════════════════════════════════════════════╗"
-echo "║          Starting JARVIS-PI on Raspberry Pi       ║"
+echo "║          Starting AURA-PI on Raspberry Pi       ║"
 echo "╚══════════════════════════════════════════════════╝"
 
 # Navigate to project directory
@@ -25,5 +25,5 @@ if ! pgrep -x "ollama" > /dev/null; then
     sleep 3
 fi
 
-# Start JARVIS
+# Start AURA
 python3 main.py

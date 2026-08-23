@@ -81,7 +81,7 @@ class VoiceInput:
 
         return result_text
 
-    def detect_wake_word(self, wake_word="jarvis", callback=None):
+    def detect_wake_word(self, wake_word="aura", callback=None):
         """Continuously listen for wake word in background thread."""
         if not self.enabled:
             return

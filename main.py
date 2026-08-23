@@ -1,5 +1,5 @@
 """
-JARVIS-PI — Main Entry Point
+AURA-PI — Main Entry Point
 Starts the web server and optional background voice listener.
 """
 
@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def load_config():
-    with open("config/jarvis_config.json", encoding="utf-8") as f:
+    with open("config/aura_config.json", encoding="utf-8") as f:
         return json.load(f)
 
 def print_banner():
@@ -35,7 +35,7 @@ def check_ollama():
         print("⚠  WARNING: Ollama is not running!")
         print("   Start it with: ollama serve")
         print("   Then pull a model: ollama pull qwen2.5:3b")
-        print("   Jarvis will still start but LLM won't work until Ollama is running.")
+        print("   Aura will still start but LLM won't work until Ollama is running.")
     else:
         models = llm.list_models()
         print(f"✓  Ollama connected. Models available: {', '.join(models) if models else 'none'}")
@@ -71,10 +71,10 @@ def start_voice_wake_listener(config):
         result = router.parse_and_execute(response)
         tts.speak(result["spoken"], blocking=False)
 
-    wm = WakeWordManager(stt, tts, wake_word=config["jarvis"]["wake_word"],
+    wm = WakeWordManager(stt, tts, wake_word=config["aura"]["wake_word"],
                          on_command_callback=handle_voice_command)
     wm.start()
-    print(f"✓  Wake word listener active — say '{config['jarvis']['wake_word']}'")
+    print(f"✓  Wake word listener active — say '{config['aura']['wake_word']}'")
 
 def main():
     print_banner()
@@ -97,7 +97,7 @@ def main():
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     port = int(os.getenv("FLASK_PORT", 5000))
 
-    print(f"\n✓  Starting Jarvis web interface...")
+    print(f"\n✓  Starting Aura web interface...")
     print(f"   Open in browser: http://localhost:{port}")
     print(f"   On network:      http://<your-pi-ip>:{port}")
     print(f"\n   Press Ctrl+C to stop\n")

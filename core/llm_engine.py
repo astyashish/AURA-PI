@@ -5,7 +5,7 @@ import requests
 from typing import Generator, Optional
 
 
-BASE_PROMPT = """You are JARVIS, a witty but precise local AI assistant running on a Raspberry Pi.
+BASE_PROMPT = """You are AURA, a witty but precise local AI assistant running on a Raspberry Pi.
 You can control smart-home devices, analyze camera images, and answer questions.
 
 RESPONSE FORMAT (read carefully):
@@ -27,7 +27,7 @@ You MAY emit multiple ACTION lines for multi-device commands.
 - Use the exact device names listed below when emitting ACTION blocks.
 """
 
-VISION_SYSTEM_PROMPT = """You are JARVIS vision module. Describe the image clearly and concisely.
+VISION_SYSTEM_PROMPT = """You are AURA vision module. Describe the image clearly and concisely.
 Mention: objects, people (count + actions), readable text, environment, notable details.
 Stay under 5 short sentences. Do not invent things that aren't there."""
 
@@ -38,7 +38,7 @@ class LLMEngine:
         
         config = {}
         try:
-            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "jarvis_config.json")
+            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "aura_config.json")
             with open(config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
         except Exception:

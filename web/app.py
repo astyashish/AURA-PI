@@ -1,4 +1,4 @@
-"""Flask + SocketIO web server — Jarvis dashboard and realtime hub."""
+"""Flask + SocketIO web server — Aura dashboard and realtime hub."""
 
 import os
 import sys
@@ -19,7 +19,7 @@ from hardware.camera_handler import CameraHandler
 
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "jarvis-dev-secret")
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "aura-dev-secret")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # core instances
@@ -214,7 +214,7 @@ def api_chat():
 @socketio.on("connect")
 def on_connect():
     _refresh_llm_context()
-    emit("connected", {"status": "Jarvis online"})
+    emit("connected", {"status": "Aura online"})
     emit("devices_update", gpio.get_devices_by_room())
     emit("status_update", {
         "ollama": llm.is_available(),

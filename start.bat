@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-title JARVIS-PI - Starting Up
+title AURA-PI - Starting Up
 color 0B
 cls
 
@@ -47,8 +47,8 @@ if !errorlevel! neq 0 (
     echo       Model ready.
 )
 
-:: ── 4. Start Jarvis ────────────────────────────────────
-echo [3/3] Starting Jarvis web server...
+:: ── 4. Start Aura ────────────────────────────────────
+echo [3/3] Starting Aura web server...
 echo.
 echo  --------------------------------------------------
 echo    Browser  :  http://localhost:5000

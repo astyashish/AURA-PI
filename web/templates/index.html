@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JARVIS — Local AI Assistant</title>
+<title>AURA — Local AI Assistant</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <!-- Official socket.io CDN (no SES/lockdown wrapper) -->
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23000d18' stroke='%2300d4ff' stroke-width='4'/><text y='.9em' x='18' font-size='58' fill='%2300d4ff'>J</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23000d18' stroke='%2300d4ff' stroke-width='4'/><text y='.9em' x='18' font-size='58' fill='%2300d4ff'>A</text></svg>">
 <link rel="stylesheet" href="/static/css/dashboard.css">
 </head>
 <body>
@@ -19,15 +19,15 @@
 <!-- HEADER -->
 <header class="hud-header">
   <div class="hud-logo">
-    <div class="jarvis-ring" id="jarvisRing">
+    <div class="aura-ring" id="auraRing">
       <div class="ring r1"></div>
       <div class="ring r2"></div>
       <div class="ring r3"></div>
       <div class="core-dot"></div>
     </div>
     <div class="title-block">
-      <h1>J·A·R·V·I·S</h1>
-      <p>Just A Rather Very Intelligent System · v2.0</p>
+      <h1>A·U·R·A</h1>
+      <p>Autonomous Utility & Response Assistant · v2.0</p>
     </div>
   </div>
   <div class="hud-status">
@@ -53,7 +53,7 @@
     <div class="chat-shell">
       <div class="chat-messages" id="chatMessages">
         <div class="msg system-msg">
-          <span class="msg-label">JARVIS</span>
+          <span class="msg-label">AURA</span>
           <div class="msg-text">Systems online. I am ready, sir. Try: <em>"turn on living room light"</em>, <em>"dim bedroom light to 30%"</em>, or <em>"what do you see?"</em></div>
         </div>
       </div>
@@ -91,7 +91,7 @@
         </div>
       </div>
       <div class="voice-transcript" id="voiceTranscript">
-        <span class="vt-placeholder">Press the button below and start speaking — Jarvis will reply and keep listening.</span>
+        <span class="vt-placeholder">Press the button below and start speaking — Aura will reply and keep listening.</span>
       </div>
       <div class="voice-controls">
         <button class="btn-voice-start" id="voiceStartBtn">▶  START CONVERSATION</button>
@@ -147,7 +147,7 @@
 
 <!-- LOG STRIP -->
 <footer class="hud-footer">
-  <div class="footer-left">JARVIS-PI · 100% LOCAL · NO CLOUD</div>
+  <div class="footer-left">AURA-PI · 100% LOCAL · NO CLOUD</div>
   <div class="log-strip" id="logStrip"></div>
   <div class="footer-right" id="footerStatus">STANDING BY</div>
 </footer>

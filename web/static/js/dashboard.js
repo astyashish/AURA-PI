@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-//  JARVIS-PI Dashboard v2 — chat / voice / devices / camera
+//  AURA-PI Dashboard v2 — chat / voice / devices / camera
 // ═══════════════════════════════════════════════════════
 
 const socket = io({ transports: ["websocket", "polling"] });
@@ -46,14 +46,14 @@ socket.on("status_update", (d) => {
 
 socket.on("thinking", (d) => {
   $("thinkingBar").classList.toggle("active", d.state);
-  $("jarvisRing").classList.toggle("thinking", d.state);
+  $("auraRing").classList.toggle("thinking", d.state);
   $("footerStatus").textContent = d.state ? "PROCESSING..." : "STANDING BY";
   if (state.voiceMode) setVoiceOrb(d.state ? "thinking" : (state.voiceActive ? "listening" : "standby"));
 });
 
 socket.on("token", (d) => {
   if (!state.streamMsg) {
-    state.streamMsg = createMessage("JARVIS", "", "jarvis-msg");
+    state.streamMsg = createMessage("AURA", "", "aura-msg");
     state.streamText = "";
   }
   state.streamText += d.token;
@@ -68,7 +68,7 @@ socket.on("response_complete", (d) => {
   let msgEl = state.streamMsg;
   if (!msgEl) {
     // tokens were never received (non-streaming or lost) — create bubble now
-    if (text) msgEl = createMessage("JARVIS", text, "jarvis-msg");
+    if (text) msgEl = createMessage("AURA", text, "aura-msg");
   } else {
     // streaming done — update the final clean text
     msgEl.querySelector(".msg-text").textContent = text || msgEl.querySelector(".msg-text").textContent;
@@ -232,7 +232,7 @@ function startRecognition() {
       stopVoiceMode();
     } else if (e.error === "network") {
       // Chrome's built-in STT needs Google servers
-      appendTranscript("vt-jarvis", "⚠ Voice recognition needs internet (Chrome uses Google's servers). Try the CHAT tab with keyboard input, or type in the chat box and hit Enter.");
+      appendTranscript("vt-aura", "⚠ Voice recognition needs internet (Chrome uses Google's servers). Try the CHAT tab with keyboard input, or type in the chat box and hit Enter.");
       stopVoiceMode();
     } else if (e.error === "no-speech") {
       // just restart silently
@@ -304,7 +304,7 @@ function loadVoices() {
     o.textContent = `${v.name} (${v.lang})`;
     sel.appendChild(o);
   });
-  // prefer an english male / "David" / "Daniel" voice for Jarvis
+  // prefer an english male / "David" / "Daniel" voice for Aura
   const pref = voices.find(v => /david|daniel|google.*uk.*male/i.test(v.name) && /en/i.test(v.lang))
             || voices.find(v => /en/i.test(v.lang));
   if (pref) { sel.value = pref.name; state.selectedVoice = pref; }
@@ -320,8 +320,8 @@ function speak(text, done) {
   const u = new SpeechSynthesisUtterance(text);
   if (state.selectedVoice) u.voice = state.selectedVoice;
   u.rate = 1.05; u.pitch = 1.0; u.volume = 1.0;
-  u.onstart = () => { setVoiceOrb("speaking"); $("jarvisRing").classList.add("speaking"); $("ttsStatus").classList.add("online"); };
-  u.onend = () => { $("jarvisRing").classList.remove("speaking"); $("ttsStatus").classList.remove("online");
+  u.onstart = () => { setVoiceOrb("speaking"); $("auraRing").classList.add("speaking"); $("ttsStatus").classList.add("online"); };
+  u.onend = () => { $("auraRing").classList.remove("speaking"); $("ttsStatus").classList.remove("online");
     if (state.voiceMode && state.voiceActive) setVoiceOrb("listening");
     done && done();
   };
@@ -560,7 +560,7 @@ $("modelSelect").addEventListener("change", async e => {
 async function clearHistory() {
   await fetch("/api/clear_history", { method: "POST" });
   $("chatMessages").innerHTML = "";
-  createMessage("JARVIS", "Memory cleared. Ready for a fresh conversation.", "system-msg");
+  createMessage("AURA", "Memory cleared. Ready for a fresh conversation.", "system-msg");
   log("memory cleared", "action");
 }
 

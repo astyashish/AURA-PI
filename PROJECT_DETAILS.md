@@ -1,4 +1,4 @@
-# JARVIS-PI Project Details
+# AURA-PI Project Details
 
 Yeh document current repository implementation par based hai. Jahan runtime measurement ya Raspberry Pi hardware evidence available nahi hai, wahan usse clearly marked kiya gaya hai.
 
@@ -18,13 +18,13 @@ Configured models:
 - Vision model: `llava:7b`
 - Other available option: `mistral:7b`
 
-Important: `core/llm_engine.py` ka constructor runtime mein `qwen2.5:0.5b` set karta hai. Isliye current implementation mein normal chat ke liye Qwen use hota hai, jab tak model explicitly change na kiya jaye. `config/jarvis_config.json` ka `models.default` abhi runtime default ko override nahi karta.
+Important: `core/llm_engine.py` ka constructor runtime mein `qwen2.5:0.5b` set karta hai. Isliye current implementation mein normal chat ke liye Qwen use hota hai, jab tak model explicitly change na kiya jaye. `config/aura_config.json` ka `models.default` abhi runtime default ko override nahi karta.
 
 ## Prompt kaise design kiya?
 
 Prompt `core/llm_engine.py` mein do layers mein design kiya gaya hai:
 
-1. `BASE_PROMPT` JARVIS ki personality aur output rules define karta hai.
+1. `BASE_PROMPT` AURA ki personality aur output rules define karta hai.
 2. `update_device_context()` current rooms, devices, state, aur intensity ko system prompt mein inject karta hai.
 
 Device-control request ke liye model ko concise spoken confirmation aur machine-readable action dena hota hai:

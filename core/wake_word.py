@@ -9,7 +9,7 @@ from core.voice_output import VoiceOutput
 
 class WakeWordManager:
     def __init__(self, voice_input: VoiceInput, voice_output: VoiceOutput,
-                 wake_word: str = "jarvis", on_command_callback=None):
+                 wake_word: str = "aura", on_command_callback=None):
         self.voice_input = voice_input
         self.voice_output = voice_output
         self.wake_word = wake_word

@@ -1,6 +1,6 @@
-# 🤖 JARVIS-PI — Local AI Assistant for Raspberry Pi
+# 🤖 AURA-PI — Local AI Assistant for Raspberry Pi
 
-A fully offline Jarvis-style AI assistant. Voice commands, text chat, image recognition, GPIO hardware control — all running locally using Ollama LLMs. No internet required after setup.
+A fully offline Aura-style AI assistant. Voice commands, text chat, image recognition, GPIO hardware control — all running locally using Ollama LLMs. No internet required after setup.
 
 ## Features
 - 🎤 Voice input (Vosk STT, offline)
@@ -14,8 +14,8 @@ A fully offline Jarvis-style AI assistant. Voice commands, text chat, image reco
 
 ## Quick Start (Raspberry Pi)
 ```bash
-git clone https://github.com/YOUR_USERNAME/jarvis-pi.git
-cd jarvis-pi
+git clone https://github.com/YOUR_USERNAME/aura-pi.git
+cd aura-pi
 chmod +x setup.sh
 ./setup.sh
 python main.py
@@ -23,8 +23,8 @@ python main.py
 
 ## Quick Start (Windows)
 ```cmd
-git clone https://github.com/YOUR_USERNAME/jarvis-pi.git
-cd jarvis-pi
+git clone https://github.com/YOUR_USERNAME/aura-pi.git
+cd aura-pi
 setup_windows.bat
 python main.py
 ```
@@ -43,6 +43,6 @@ Then open: http://localhost:5000
 |--------|----------|-------------|
 | Living Room Light | GPIO 17 | LED/Relay |
 | Bedroom Light | GPIO 27 | LED/Relay |
-| Status LED (Blue) | GPIO 22 | Jarvis thinking indicator |
-| Status LED (Green) | GPIO 23 | Jarvis speaking indicator |
+| Status LED (Blue) | GPIO 22 | Aura thinking indicator |
+| Status LED (Green) | GPIO 23 | Aura speaking indicator |
 | Camera LED | GPIO 24 | Camera active indicator |

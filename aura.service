@@ -1,12 +1,12 @@
 [Unit]
-Description=JARVIS-PI Local AI Assistant
+Description=AURA-PI Local AI Assistant
 After=network.target ollama.service
 
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/jarvis-pi
-ExecStart=/home/pi/jarvis-pi/venv/bin/python main.py
+WorkingDirectory=/home/pi/aura-pi
+ExecStart=/home/pi/aura-pi/venv/bin/python main.py
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1

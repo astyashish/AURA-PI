@@ -2,7 +2,7 @@
 
 echo ""
 echo "╔══════════════════════════════════════════╗"
-echo "║   JARVIS-PI Setup — Raspberry Pi          ║"
+echo "║   AURA-PI Setup — Raspberry Pi          ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
@@ -20,7 +20,7 @@ sudo apt-get install -y -qq \
   ffmpeg libopenblas-dev \
   build-essential cmake \
   espeak espeak-data \
-  libatlas-base-dev
+  
 
 # Create virtual environment
 echo "[3/8] Creating Python virtual environment..."
@@ -112,7 +112,7 @@ echo "╔═══════════════════════�
 echo "║   Setup Complete!                         ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
-echo "  To start Jarvis:"
+echo "  To start Aura:"
 echo "    source venv/bin/activate"
 echo "    ollama serve &"
 echo "    python main.py"

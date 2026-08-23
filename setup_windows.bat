@@ -1,6 +1,6 @@
 @echo off
 echo ╔══════════════════════════════════════════╗
-echo ║   JARVIS-PI Setup — Windows Dev Mode     ║
+echo ║   AURA-PI Setup — Windows Dev Mode     ║
 echo ╚══════════════════════════════════════════╝
 
 echo.
