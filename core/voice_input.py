@@ -140,6 +140,47 @@ def _can_open_stream(pa, device_index, sample_rate=16000):
     return False
 
 
+_PROBE_CODE = r'''
+import json, sys, os
+sys.path.insert(0, os.getcwd())
+from core.voice_input import _pick_best_input_device, _can_open_stream, _list_input_devices, _suppress_c_stderr
+import pyaudio
+rate = int(sys.argv[1])
+with _suppress_c_stderr():
+    pa = pyaudio.PyAudio()
+try:
+    idx, name = _pick_best_input_device(pa)
+    if _can_open_stream(pa, idx, rate):
+        print(json.dumps({"ok": True, "index": -1 if idx is None else idx, "name": name}))
+    else:
+        for d in _list_input_devices(pa):
+            if _can_open_stream(pa, d["index"], rate):
+                print(json.dumps({"ok": True, "index": d["index"], "name": d["name"]}))
+                break
+        else:
+            print(json.dumps({"ok": False, "index": -1, "name": "none"}))
+finally:
+    pa.terminate()
+'''
+
+
+def _probe_audio_subprocess(sample_rate):
+    """Run the PyAudio probe in a child process. Returns dict or None on crash."""
+    import subprocess
+    try:
+        r = subprocess.run(
+            [sys.executable, "-c", _PROBE_CODE, str(sample_rate)],
+            capture_output=True, text=True, timeout=25,
+            cwd=str(Path(__file__).resolve().parent.parent),
+        )
+        if r.returncode != 0:
+            return None
+        lines = [l for l in r.stdout.splitlines() if l.strip().startswith("{")]
+        return json.loads(lines[-1]) if lines else None
+    except Exception:
+        return None
+
+
 # ── Main class ───────────────────────────────────────────────────────────────
 
 class VoiceInput:
@@ -176,33 +217,22 @@ class VoiceInput:
             print("[Voice] Fix: sudo apt-get install portaudio19-dev && pip install pyaudio")
             return
 
-        # Probe audio devices
-        try:
-            with _suppress_c_stderr():
-                pa = self._pa_lib.PyAudio()
-        except Exception as e:
-            print(f"[Voice] PyAudio init error: {e}")
+        # Probe audio devices in a SUBPROCESS: PortAudio can segfault on some
+        # Pi setups, and a crash there must not take down the whole app.
+        probe = _probe_audio_subprocess(self.sample_rate)
+        if probe is None:
+            print("[Voice] Audio probe crashed or failed — voice input disabled.")
+            print("[Voice] Fix: bash scripts/fix_all.sh  (then reboot)")
+            print("[Voice] Text commands via web UI still work.")
             return
-
-        try:
-            dev_idx, dev_name = _pick_best_input_device(pa)
-            if not _can_open_stream(pa, dev_idx, self.sample_rate):
-                # last resort: try every device
-                found = False
-                for d in _list_input_devices(pa):
-                    if _can_open_stream(pa, d["index"], self.sample_rate):
-                        dev_idx, dev_name = d["index"], d["name"]
-                        found = True
-                        break
-                if not found:
-                    print("[Voice] No working microphone found.")
-                    print("[Voice] → Connect a USB mic or pair Bluetooth earbuds.")
-                    print("[Voice] → Text commands via web UI still work.")
-                    return
-            self._dev_idx  = dev_idx
-            self._dev_name = dev_name
-        finally:
-            pa.terminate()
+        if probe.get("index", -1) == -1 and not probe.get("ok"):
+            print("[Voice] No working microphone found.")
+            print("[Voice] → Connect a USB mic or pair Bluetooth earbuds.")
+            print("[Voice] → Text commands via web UI still work.")
+            return
+        dev_idx = probe.get("index")
+        self._dev_idx  = None if dev_idx in (None, -1) else int(dev_idx)
+        self._dev_name = probe.get("name", "default")
 
         # Load Vosk model
         try:

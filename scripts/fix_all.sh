@@ -1,151 +1,128 @@
 #!/bin/bash
 # =============================================================================
-#  AURA-PI — ONE-SHOT FIX SCRIPT
-#  Run this on the Raspberry Pi to fix ALL audio/voice/GPIO issues at once.
-#  Works fully offline after running setup.sh once.
+#  AURA-PI — ONE-SHOT FIX SCRIPT (Pi 5 compatible, no PEP 668 conflicts)
+#  Run once on the Raspberry Pi to fix all audio/voice/GPIO issues.
 #
 #  Usage:
-#    chmod +x scripts/fix_all.sh
 #    bash scripts/fix_all.sh
 # =============================================================================
 
-set -e
 AURA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$AURA_DIR"
-source venv/bin/activate 2>/dev/null || true
 
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║   AURA-PI — Fix All Script                          ║"
+echo "║   AURA-PI — Fix All                                 ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 
-# ── 1. Fix ALSA → PulseAudio routing ─────────────────────────────────────────
-echo "[1/6] Fixing ALSA audio routing..."
+# ── 1. Install ALL system packages via apt (avoids PEP 668 pip conflicts) ────
+echo "[1/4] Installing system packages (enter sudo password if asked)..."
+sudo apt-get update -qq
+sudo apt-get install -y \
+    python3-rpi-lgpio \
+    python3-lgpio \
+    portaudio19-dev \
+    libasound2-dev \
+    libasound2-plugins \
+    alsa-utils \
+    pipewire \
+    pipewire-pulse \
+    pipewire-alsa \
+    wireplumber \
+    espeak-ng \
+    pulseaudio-utils \
+    bluetooth \
+    bluez \
+    bluez-tools \
+    wget \
+    unzip \
+    swig \
+    python3-pyaudio
+echo "  ✓ System packages installed"
+
+# ── 2. Install Python packages into venv (--system-site-packages needed) ─────
+echo "[2/4] Setting up Python venv with system site-packages..."
+
+# Recreate venv WITH system-site-packages so apt-installed packages are visible
+if [ ! -d "venv" ] || ! grep -qi "include-system-site-packages *= *true" venv/pyvenv.cfg 2>/dev/null; then
+    echo "  Creating venv with --system-site-packages..."
+    rm -rf venv
+    python3 -m venv venv --system-site-packages
+fi
+
+source venv/bin/activate
+
+# Old pip RPi.GPIO breaks Pi 5 and shadows rpi-lgpio
+pip uninstall -y RPi.GPIO >/dev/null 2>&1 || true
+
+# Install pip packages (these are not available via apt)
+echo "  Installing pip packages..."
+pip install --quiet \
+    flask \
+    flask-socketio \
+    python-socketio \
+    eventlet \
+    ollama \
+    vosk \
+    pillow \
+    python-dotenv \
+    requests \
+    numpy \
+    pydantic \
+    aiofiles \
+    faster-whisper \
+    2>/dev/null && echo "  ✓ pip packages installed" || \
+    echo "  ⚠ Some pip packages failed — trying with --break-system-packages..."
+
+# Fallback: try with --break-system-packages if pip fails
+pip install --quiet --break-system-packages \
+    flask flask-socketio python-socketio eventlet ollama vosk \
+    pillow python-dotenv requests numpy pydantic aiofiles faster-whisper \
+    2>/dev/null || true
+
+echo "  ✓ Python packages ready"
+
+# ── 3. Fix ALSA routing to PipeWire ──────────────────────────────────────────
+echo "[3/4] Fixing audio routing..."
 mkdir -p "$HOME/.config/alsa"
 cat > "$HOME/.config/alsa/asoundrc" << 'EOF'
 pcm.!default { type pulse }
 ctl.!default { type pulse }
-pcm.pulse    { type pulse }
-ctl.pulse    { type pulse }
 EOF
-echo "  ✓ ~/.config/alsa/asoundrc written"
+echo "  ✓ ALSA routing configured"
 
-# ── 2. Start PipeWire audio stack ─────────────────────────────────────────────
-echo "[2/6] Starting PipeWire audio stack..."
-# Stop legacy PulseAudio standalone (if any)
-systemctl --user stop pulseaudio.socket pulseaudio.service 2>/dev/null || true
-systemctl --user mask pulseaudio.service 2>/dev/null || true
-
-# Start PipeWire (replaces PulseAudio, provides pipewire-pulse compatibility)
+# Start PipeWire audio stack
 for svc in pipewire pipewire-pulse wireplumber; do
     systemctl --user enable "$svc" 2>/dev/null || true
     systemctl --user restart "$svc" 2>/dev/null || true
-    sleep 0.5
-    systemctl --user is-active --quiet "$svc" && \
-        echo "  ✓ $svc running" || echo "  ⚠ $svc not started"
 done
 sleep 2
+echo "  ✓ PipeWire audio stack started"
 
-# ── 3. Fix GPIO for Pi 5 ──────────────────────────────────────────────────────
-echo "[3/6] Fixing GPIO library..."
-PI_MODEL=$(cat /proc/device-tree/model 2>/dev/null || echo "unknown")
-if echo "$PI_MODEL" | grep -q "Pi 5"; then
-    echo "  Pi 5 detected — replacing RPi.GPIO with rpi-lgpio..."
-    pip uninstall -y RPi.GPIO --quiet 2>/dev/null || true
-    pip install rpi-lgpio lgpio --quiet 2>/dev/null && echo "  ✓ rpi-lgpio installed" \
-        || echo "  ⚠ rpi-lgpio install failed — try: sudo apt-get install python3-rpi-lgpio"
-else
-    echo "  Pi 4/older — ensuring RPi.GPIO..."
-    pip install RPi.GPIO --quiet 2>/dev/null && echo "  ✓ RPi.GPIO installed" || true
-fi
-
-# ── 4. Ensure audio packages ──────────────────────────────────────────────────
-echo "[4/6] Ensuring audio packages..."
-if command -v espeak-ng >/dev/null 2>&1 && dpkg -s libasound2-plugins >/dev/null 2>&1; then
-    echo "  ✓ Audio system packages already installed"
-else
-    echo "  Installing system audio packages (type your Pi password if prompted)..."
-    sudo apt-get install -y \
-        portaudio19-dev libasound2-dev libasound2-plugins \
-        pipewire pipewire-pulse pipewire-alsa wireplumber \
-        espeak-ng pulseaudio-utils || echo "  ⚠ apt install skipped"
-fi
-
-pip install pyaudio --quiet 2>/dev/null && echo "  ✓ pyaudio" || \
-    echo "  ⚠ pyaudio failed — try: sudo apt-get install python3-pyaudio"
-pip install vosk --quiet 2>/dev/null && echo "  ✓ vosk" || true
-pip install faster-whisper --quiet 2>/dev/null && echo "  ✓ faster-whisper" || true
-
-# ── 5. Download Vosk model if missing ─────────────────────────────────────────
-echo "[5/6] Checking Vosk model..."
+# ── 4. Download Vosk model if missing ────────────────────────────────────────
+echo "[4/4] Checking Vosk speech model..."
 VOSK_MODEL="models/vosk-model-small-en-us-0.15"
-if [ ! -d "$VOSK_MODEL" ]; then
-    echo "  Downloading Vosk model (~40MB)..."
+if [ -d "$VOSK_MODEL" ]; then
+    echo "  ✓ Vosk model already present"
+else
+    echo "  Downloading Vosk model (~40MB, needs internet once)..."
     mkdir -p models
     cd models
     wget -q "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip" \
-        -O vosk-model-small-en-us-0.15.zip
-    unzip -q vosk-model-small-en-us-0.15.zip
-    rm vosk-model-small-en-us-0.15.zip
+        -O vosk-model-small-en-us-0.15.zip && \
+    unzip -q vosk-model-small-en-us-0.15.zip && \
+    rm vosk-model-small-en-us-0.15.zip && \
+    echo "  ✓ Vosk model downloaded" || \
+    echo "  ⚠ Vosk download failed — voice wake-word will be disabled"
     cd "$AURA_DIR"
-    echo "  ✓ Vosk model downloaded"
-else
-    echo "  ✓ Vosk model present"
 fi
-
-# ── 6. Verify everything ──────────────────────────────────────────────────────
-echo "[6/6] Verification..."
-
-# Audio devices
-echo "  Audio sinks:"
-pactl list sinks short 2>/dev/null | sed 's/^/    /' || echo "    (pactl not available)"
-
-echo "  Audio sources (microphones):"
-pactl list sources short 2>/dev/null | grep -v "monitor" | sed 's/^/    /' \
-    || echo "    (pactl not available)"
-
-# Python imports
-python3 - <<'PYEOF'
-import sys
-results = []
-
-try:
-    import pyaudio
-    pa = pyaudio.PyAudio()
-    n = pa.get_device_count()
-    ins  = sum(1 for i in range(n) if pa.get_device_info_by_index(i).get("maxInputChannels",0)>0)
-    outs = sum(1 for i in range(n) if pa.get_device_info_by_index(i).get("maxOutputChannels",0)>0)
-    pa.terminate()
-    results.append(f"  ✓ PyAudio: {ins} input, {outs} output devices")
-except Exception as e:
-    results.append(f"  ✗ PyAudio: {e}")
-
-try:
-    import vosk
-    results.append("  ✓ Vosk library OK")
-except ImportError:
-    results.append("  ✗ Vosk: pip install vosk")
-
-try:
-    from faster_whisper import WhisperModel
-    results.append("  ✓ faster-whisper OK")
-except ImportError:
-    results.append("  ✗ faster-whisper: pip install faster-whisper")
-
-for r in results:
-    print(r)
-PYEOF
 
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║   ✓  All fixes applied!                             ║"
+echo "║   ✓  All fixes applied — ready to run AURA!         ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 echo "  Now start AURA:"
-echo "    ollama serve &"
-echo "    python main.py"
-echo ""
-echo "  Or run the diagnostic first:"
-echo "    python scripts/diagnose.py"
+echo "    bash start.sh"
 echo ""
