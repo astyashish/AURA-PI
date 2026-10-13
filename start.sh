@@ -29,8 +29,12 @@ echo "  ✓ Python venv activated"
 
 # GPIO check (Pi 5 needs rpi-lgpio; old RPi.GPIO does not work)
 if ! python -c "import lgpio" 2>/dev/null; then
-    echo "  Installing GPIO libs via apt (sudo password may be asked)..."
-    sudo apt-get install -y python3-lgpio python3-rpi-lgpio
+    if [ "$(id -u)" = "0" ] || sudo -n true 2>/dev/null; then
+        echo "  Installing GPIO libs via apt..."
+        sudo -n apt-get install -y python3-lgpio python3-rpi-lgpio
+    else
+        echo "  ⚠ GPIO libs missing & no passwordless sudo — run once: bash scripts/enable_nopasswd.sh"
+    fi
 fi
 export PYTHONFAULTHANDLER=1
 

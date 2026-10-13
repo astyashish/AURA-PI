@@ -16,30 +16,25 @@ echo "║   AURA-PI — Fix All                                 ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 
-# ── 1. Install ALL system packages via apt (avoids PEP 668 pip conflicts) ────
-echo "[1/4] Installing system packages (enter sudo password if asked)..."
-sudo apt-get update -qq
-sudo apt-get install -y \
-    python3-rpi-lgpio \
-    python3-lgpio \
-    portaudio19-dev \
-    libasound2-dev \
-    libasound2-plugins \
-    alsa-utils \
-    pipewire \
-    pipewire-pulse \
-    pipewire-alsa \
-    wireplumber \
-    espeak-ng \
-    pulseaudio-utils \
-    bluetooth \
-    bluez \
-    bluez-tools \
-    wget \
-    unzip \
-    swig \
-    python3-pyaudio
-echo "  ✓ System packages installed"
+# ── 1. System packages via apt (never prompts for a password) ────────────────
+echo "[1/4] Checking system packages..."
+PKGS="python3-rpi-lgpio python3-lgpio portaudio19-dev libasound2-dev libasound2-plugins alsa-utils pipewire pipewire-pulse pipewire-alsa wireplumber espeak-ng pulseaudio-utils bluetooth bluez bluez-tools wget unzip swig python3-pyaudio"
+MISSING=""
+for p in $PKGS; do
+    dpkg -s "$p" >/dev/null 2>&1 || MISSING="$MISSING $p"
+done
+if [ -z "$MISSING" ]; then
+    echo "  ✓ All system packages already installed (no sudo needed)"
+elif [ "$(id -u)" = "0" ] || sudo -n true 2>/dev/null; then
+    echo "  Installing:$MISSING"
+    sudo -n apt-get update -qq
+    sudo -n apt-get install -y $MISSING
+    echo "  ✓ System packages installed"
+else
+    echo "  ⚠ Missing packages:$MISSING"
+    echo "  ⚠ Passwordless sudo is not enabled. Run this ONCE, then re-run:"
+    echo "      bash scripts/enable_nopasswd.sh"
+fi
 
 # ── 2. Install Python packages into venv (--system-site-packages needed) ─────
 echo "[2/4] Setting up Python venv with system site-packages..."
