@@ -22,6 +22,16 @@ else
     exit 1
 fi
 
+# ── Ensure Pi 5 GPIO compatibility ───────────────────────────────────────────
+PI_MODEL=$(cat /proc/device-tree/model 2>/dev/null || cat /proc/cpuinfo 2>/dev/null || echo "")
+if echo "$PI_MODEL" | grep -q "Pi 5"; then
+    if ! python3 -c "import lgpio" 2>/dev/null; then
+        echo "  Configuring GPIO for Raspberry Pi 5..."
+        pip uninstall -y RPi.GPIO >/dev/null 2>&1 || true
+        pip install rpi-lgpio lgpio --quiet 2>/dev/null || true
+    fi
+fi
+
 # ── Start PipeWire if not running ────────────────────────────────────────────
 for svc in pipewire pipewire-pulse wireplumber; do
     systemctl --user is-active --quiet "$svc" 2>/dev/null || \

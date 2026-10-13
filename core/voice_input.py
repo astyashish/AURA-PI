@@ -16,30 +16,31 @@ import sys
 import json
 import time
 import threading
-import ctypes
 from pathlib import Path
+from contextlib import contextmanager
 
-# ── Silence ALSA error spam ─────────────────────────────────────────────────
-# ALSA prints harmless "Unknown PCM" errors to stderr — suppress them.
-def _suppress_alsa_errors():
-    """Redirect ALSA/JACK error output to /dev/null."""
+# ── Safe ALSA / PortAudio error suppression ──────────────────────────────────
+# Temporarily redirect C-level stderr (fd 2) during PyAudio calls to prevent ALSA
+# log spam. This avoids ctypes C-callbacks which cause Segmentation Faults.
+@contextmanager
+def _suppress_c_stderr():
+    """Safely suppress C-level stderr without risky ctypes callbacks."""
     try:
         if sys.platform.startswith("linux"):
-            asound = ctypes.cdll.LoadLibrary("libasound.so.2")
-            # Set error handler to a no-op C function
-            ERROR_HANDLER_FUNC = ctypes.CFUNCTYPE(
-                None, ctypes.c_char_p, ctypes.c_int,
-                ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p
-            )
-            def _py_error_handler(filename, line, function, err, fmt):
-                pass  # suppress
-            c_error_handler = ERROR_HANDLER_FUNC(_py_error_handler)
-            asound.snd_lib_error_set_handler(c_error_handler)
+            null_fd = os.open(os.devnull, os.O_WRONLY)
+            orig_stderr = os.dup(2)
+            sys.stderr.flush()
+            os.dup2(null_fd, 2)
+            os.close(null_fd)
+            try:
+                yield
+            finally:
+                os.dup2(orig_stderr, 2)
+                os.close(orig_stderr)
+        else:
+            yield
     except Exception:
-        pass  # not critical
-
-
-_suppress_alsa_errors()
+        yield
 
 
 # ── Device probe helpers ─────────────────────────────────────────────────────
@@ -176,7 +177,13 @@ class VoiceInput:
             return
 
         # Probe audio devices
-        pa = self._pa_lib.PyAudio()
+        try:
+            with _suppress_c_stderr():
+                pa = self._pa_lib.PyAudio()
+        except Exception as e:
+            print(f"[Voice] PyAudio init error: {e}")
+            return
+
         try:
             dev_idx, dev_name = _pick_best_input_device(pa)
             if not _can_open_stream(pa, dev_idx, self.sample_rate):
@@ -216,18 +223,13 @@ class VoiceInput:
 
     def _setup_whisper(self):
         try:
-            from faster_whisper import WhisperModel
-            # tiny model — fast on Pi 5 CPU with int8
-            self._whisper_model = WhisperModel(
-                "tiny", device="cpu", compute_type="int8",
-                download_root="models/whisper"
-            )
+            import faster_whisper
             self.whisper_enabled = True
-            print("[Voice] ✓ Whisper STT ready (multilingual)")
+            print("[Voice] ✓ Whisper STT available (lazy loaded)")
         except ImportError:
             print("[Voice] faster-whisper not installed — English-only mode")
         except Exception as e:
-            print(f"[Voice] Whisper init: {e}")
+            print(f"[Voice] Whisper check: {e}")
 
     # ── Stream helpers ───────────────────────────────────────────────────────
 
@@ -237,10 +239,12 @@ class VoiceInput:
         Returns (pa_instance, stream) or (None, None).
         Never raises — always returns safely.
         """
-        if not self.enabled or not self._pa_lib:
+        try:
+            with _suppress_c_stderr():
+                pa = self._pa_lib.PyAudio()
+        except Exception:
             return None, None
 
-        pa = self._pa_lib.PyAudio()
         kwargs = dict(
             format=self._pa_lib.paInt16,
             channels=1,
@@ -318,6 +322,13 @@ class VoiceInput:
         # Whisper pass
         if use_whisper and self.whisper_enabled and len(audio_buf) > 2048:
             try:
+                if self._whisper_model is None:
+                    from faster_whisper import WhisperModel
+                    print("[Voice] Loading Whisper model (tiny, int8)...")
+                    self._whisper_model = WhisperModel(
+                        "tiny", device="cpu", compute_type="int8",
+                        download_root="models/whisper"
+                    )
                 import numpy as np
                 print("[Voice] Transcribing with Whisper...")
                 audio_np = (

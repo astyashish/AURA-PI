@@ -51,10 +51,10 @@ sleep 2
 echo "[3/6] Fixing GPIO library..."
 PI_MODEL=$(cat /proc/device-tree/model 2>/dev/null || echo "unknown")
 if echo "$PI_MODEL" | grep -q "Pi 5"; then
-    echo "  Pi 5 detected — installing rpi-lgpio..."
-    pip install rpi-lgpio --quiet 2>/dev/null && echo "  ✓ rpi-lgpio installed" \
-        || echo "  ⚠ rpi-lgpio failed — trying lgpio..."
-    pip install lgpio --quiet 2>/dev/null && echo "  ✓ lgpio installed" || true
+    echo "  Pi 5 detected — replacing RPi.GPIO with rpi-lgpio..."
+    pip uninstall -y RPi.GPIO --quiet 2>/dev/null || true
+    pip install rpi-lgpio lgpio --quiet 2>/dev/null && echo "  ✓ rpi-lgpio installed" \
+        || echo "  ⚠ rpi-lgpio install failed — try: sudo apt-get install python3-rpi-lgpio"
 else
     echo "  Pi 4/older — ensuring RPi.GPIO..."
     pip install RPi.GPIO --quiet 2>/dev/null && echo "  ✓ RPi.GPIO installed" || true
