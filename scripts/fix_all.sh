@@ -62,11 +62,15 @@ fi
 
 # ── 4. Ensure audio packages ──────────────────────────────────────────────────
 echo "[4/6] Ensuring audio packages..."
-sudo apt-get install -y -qq \
-    portaudio19-dev libasound2-dev libasound2-plugins \
-    pipewire pipewire-pulse pipewire-alsa wireplumber \
-    espeak-ng pulseaudio-utils \
-    2>/dev/null || true
+if command -v espeak-ng >/dev/null 2>&1 && dpkg -s libasound2-plugins >/dev/null 2>&1; then
+    echo "  ✓ Audio system packages already installed"
+else
+    echo "  Installing system audio packages (type your Pi password if prompted)..."
+    sudo apt-get install -y \
+        portaudio19-dev libasound2-dev libasound2-plugins \
+        pipewire pipewire-pulse pipewire-alsa wireplumber \
+        espeak-ng pulseaudio-utils || echo "  ⚠ apt install skipped"
+fi
 
 pip install pyaudio --quiet 2>/dev/null && echo "  ✓ pyaudio" || \
     echo "  ⚠ pyaudio failed — try: sudo apt-get install python3-pyaudio"
