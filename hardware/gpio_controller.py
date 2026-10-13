@@ -106,6 +106,9 @@ class GPIOController:
         self.status_leds = {}
         self._pwm = {}
         self._lock = Lock()
+        # Output polarity. active_low=True means GPIO LOW = device ON
+        # (typical for relay modules and LEDs wired to 3.3V).
+        self.active_low = True
         self._load_config()
         self._setup_gpio()
 
@@ -117,10 +120,15 @@ class GPIOController:
         for d in cfg.get("devices", []):
             self.devices[d["id"]] = d.copy()
         self.status_leds = cfg.get("status_leds", {})
+        self.active_low = bool(cfg.get("active_low", True))
+        env = os.getenv("GPIO_ACTIVE_LOW")
+        if env is not None and env.strip():
+            self.active_low = env.strip().lower() in ("1", "true", "yes", "on")
 
     def _save_config(self):
         with self._lock:
             data = {
+                "active_low": self.active_low,
                 "rooms": self.rooms,
                 "devices": list(self.devices.values()),
                 "status_leds": self.status_leds,
@@ -129,6 +137,32 @@ class GPIOController:
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             tmp.replace(self.config_path)
+
+    # ── polarity helpers ───────────────────────────────────────
+    def _is_active_low(self, device):
+        v = device.get("active_low")
+        return self.active_low if v is None else bool(v)
+
+    def _level(self, device, on):
+        """GPIO level (HIGH/LOW) that represents logical ON/OFF for this device."""
+        if self._is_active_low(device):
+            return GPIO.LOW if on else GPIO.HIGH
+        return GPIO.HIGH if on else GPIO.LOW
+
+    def _duty(self, device, on, intensity=100):
+        """PWM duty cycle for logical ON/OFF, respecting polarity."""
+        pct = intensity if on else 0
+        return 100 - pct if self._is_active_low(device) else pct
+
+    def set_active_low(self, value):
+        """Flip global polarity at runtime and re-apply every device."""
+        self.active_low = bool(value)
+        for d in self.devices.values():
+            if d.get("active_low") is None:
+                self._apply(d)
+        self._save_config()
+        return {"success": True, "active_low": self.active_low,
+                "message": f"Polarity set to {'active-LOW' if self.active_low else 'active-HIGH'}"}
 
     # ── GPIO setup ─────────────────────────────────────────────
     def _setup_gpio(self):
@@ -146,11 +180,16 @@ class GPIOController:
                 self._setup_pin(d)
                 _setup_pins.add(pin)
 
+        # Restore saved ON/OFF state so hardware matches the UI after a restart
+        for d in self.devices.values():
+            if d.get("state"):
+                self._apply(d)
+
         for led_name, led in self.status_leds.items():
             pin = led["pin"]
             if pin not in _setup_pins:
                 try:
-                    GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+                    GPIO.setup(pin, GPIO.OUT, initial=self._status_level(led_name, False))
                     print(f"[GPIO] Status LED '{led_name}' → pin {pin}")
                     _setup_pins.add(pin)
                 except Exception as e:
@@ -159,8 +198,10 @@ class GPIOController:
     def _setup_pin(self, device):
         pin = device["gpio_pin"]
         try:
-            GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
-            print(f"[GPIO] Pin {pin} → '{device['name']}' (OUTPUT)")
+            # Start in the OFF level for this device's polarity
+            GPIO.setup(pin, GPIO.OUT, initial=self._level(device, False))
+            print(f"[GPIO] Pin {pin} → '{device['name']}' (OUTPUT, "
+                  f"{'active-LOW' if self._is_active_low(device) else 'active-HIGH'})")
         except Exception as e:
             print(f"[GPIO] Pin {pin} setup error: {e}")
             return
@@ -168,7 +209,7 @@ class GPIOController:
         if REAL_GPIO and device.get("dimmable"):
             try:
                 p = GPIO.PWM(pin, 1000)
-                p.start(0)
+                p.start(self._duty(device, False))
                 self._pwm[pin] = p
                 print(f"[GPIO] Pin {pin} PWM initialized")
             except Exception as e:
@@ -177,15 +218,17 @@ class GPIOController:
     # ── apply state to hardware ────────────────────────────────
     def _apply(self, device):
         pin = device["gpio_pin"]
-        state = device["state"]
+        state = bool(device["state"])
         intensity = max(0, min(100, int(device.get("intensity", 100))))
         try:
             if REAL_GPIO and pin in self._pwm:
-                self._pwm[pin].ChangeDutyCycle(intensity if state else 0)
-                print(f"[GPIO] Pin {pin} PWM → {intensity if state else 0}%")
+                duty = self._duty(device, state, intensity)
+                self._pwm[pin].ChangeDutyCycle(duty)
+                print(f"[GPIO] Pin {pin} PWM → duty {duty}% ({'ON' if state else 'OFF'})")
             else:
-                GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
-                print(f"[GPIO] Pin {pin} → {'HIGH ✓' if state else 'LOW ✗'}")
+                GPIO.output(pin, self._level(device, state))
+                print(f"[GPIO] Pin {pin} → {'ON' if state else 'OFF'} "
+                      f"(level {'LOW' if self._is_active_low(device) == state else 'HIGH'})")
         except Exception as e:
             print(f"[GPIO] Output error pin {pin}: {e}")
 
@@ -277,12 +320,14 @@ class GPIOController:
             return {"success": False, "error": "Device not found"}
         d = self.devices[device_id]
         for k, v in updates.items():
-            if k in ("name", "type", "room", "icon", "aliases", "dimmable"):
+            if k in ("name", "type", "room", "icon", "aliases", "dimmable", "active_low"):
                 d[k] = v
             elif k == "gpio_pin":
                 d[k] = int(v)
             elif k == "intensity":
                 d[k] = max(0, min(100, int(v)))
+        if "active_low" in updates or "gpio_pin" in updates:
+            self._apply(d)
         self._save_config()
         return {"success": True, "device": d}
 
@@ -377,11 +422,15 @@ class GPIOController:
                 if d.get("room") == room_id and (device_type is None or d["type"] == device_type)]
 
     # ── status LEDs ────────────────────────────────────────────
+    def _status_level(self, led_name, on):
+        al = bool(self.status_leds[led_name].get("active_low", False))
+        return (GPIO.LOW if on else GPIO.HIGH) if al else (GPIO.HIGH if on else GPIO.LOW)
+
     def set_status_led(self, led_name, state):
         if led_name in self.status_leds:
             pin = self.status_leds[led_name]["pin"]
             try:
-                GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
+                GPIO.output(pin, self._status_level(led_name, state))
             except Exception as e:
                 pass  # silent fail for status LEDs
 
@@ -393,9 +442,9 @@ class GPIOController:
         pin = self.status_leds[led_name]["pin"]
         for _ in range(times):
             try:
-                GPIO.output(pin, GPIO.HIGH)
+                GPIO.output(pin, self._status_level(led_name, True))
                 time.sleep(delay)
-                GPIO.output(pin, GPIO.LOW)
+                GPIO.output(pin, self._status_level(led_name, False))
                 time.sleep(delay)
             except Exception:
                 break

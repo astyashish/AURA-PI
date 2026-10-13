@@ -122,15 +122,13 @@ def start_voice_thread(config):
     # Lazy imports — these may print their own status messages
     from core.voice_input  import VoiceInput
     from core.voice_output import VoiceOutput
-    from core.llm_engine   import LLMEngine
-    from core.command_router import CommandRouter
-    from hardware.gpio_controller import GPIOController
+
+    # Share the SAME gpio/llm/router instances as the web dashboard so voice,
+    # text and UI always agree on device state (a 2nd controller desyncs pins).
+    from web.app import gpio, llm, router
 
     stt  = VoiceInput()
     tts  = VoiceOutput()
-    llm  = LLMEngine()
-    gpio = GPIOController()
-    router = CommandRouter(gpio)
 
     # Inject device context into LLM system prompt
     try:

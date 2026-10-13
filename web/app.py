@@ -31,6 +31,20 @@ vision = VisionEngine(camera, llm)
 
 camera.start()
 
+# Any device change (UI, chat, or voice) is pushed to the dashboard immediately
+_orig_save_config = gpio._save_config
+
+
+def _save_and_broadcast():
+    _orig_save_config()
+    try:
+        socketio.emit("devices_update", gpio.get_devices_by_room())
+    except Exception:
+        pass
+
+
+gpio._save_config = _save_and_broadcast
+
 
 # helper to keep LLM aware of current state
 def _refresh_llm_context():
@@ -124,6 +138,20 @@ def api_device_set(device_id):
         result = gpio.set_device(device_id, bool(data.get("state", False)))
     socketio.emit("devices_update", gpio.get_devices_by_room())
     return jsonify(result)
+
+
+@app.route("/api/gpio/polarity", methods=["GET", "POST"])
+def api_gpio_polarity():
+    """GET: current polarity. POST {"active_low": true|false}: set it live (no body = flip)."""
+    if request.method == "POST":
+        data = request.json or {}
+        if "active_low" in data:
+            result = gpio.set_active_low(bool(data["active_low"]))
+        else:
+            result = gpio.set_active_low(not gpio.active_low)
+        socketio.emit("devices_update", gpio.get_devices_by_room())
+        return jsonify(result)
+    return jsonify({"active_low": gpio.active_low})
 
 
 # ── rooms ──────────────────────────────────────────────────────────────────
