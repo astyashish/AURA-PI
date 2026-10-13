@@ -1,4 +1,8 @@
-"""GPIO Controller with CRUD, intensity (PWM), rooms, and persistence."""
+"""
+GPIO Controller — fully supports Raspberry Pi 5 (RP1 chip via lgpio/rpi-lgpio)
+                  and older Pis (RPi.GPIO) with automatic detection.
+                  Falls back to MockGPIO on non-Pi systems (dev/Windows).
+"""
 
 import json
 import os
@@ -6,38 +10,93 @@ from pathlib import Path
 from threading import Lock
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# GPIO backend detection — priority: rpi-lgpio > RPi.GPIO > lgpio > mock
+# ──────────────────────────────────────────────────────────────────────────────
+
 def _is_raspberry_pi():
     try:
         with open("/proc/cpuinfo", "r") as f:
-            return "Raspberry Pi" in f.read()
+            content = f.read()
+            return "Raspberry Pi" in content or "BCM" in content or "Hardware" in content
     except Exception:
         return False
 
 
-if _is_raspberry_pi() and os.getenv("ENABLE_GPIO", "true").lower() == "true":
+def _detect_pi_version():
+    """Returns 5 for Pi 5, 4 for Pi 4/older, 0 if not Pi."""
     try:
-        import RPi.GPIO as GPIO  # type: ignore
-        # Test if this RPi.GPIO version actually supports this board (e.g. Pi 5 RP1 chip)
-        GPIO.setmode(GPIO.BCM)
-        # setup() is where the SOC peripheral base address error actually triggers
+        with open("/proc/cpuinfo", "r") as f:
+            content = f.read()
+        for line in content.splitlines():
+            if line.startswith("Model"):
+                if "Pi 5" in line:
+                    return 5
+                return 4
+    except Exception:
+        pass
+    return 0
+
+
+REAL_GPIO = False
+GPIO_BACKEND = "mock"
+
+if _is_raspberry_pi() and os.getenv("ENABLE_GPIO", "true").lower() == "true":
+    pi_ver = _detect_pi_version()
+
+    # --- Try rpi-lgpio first (best for Pi 5 and works on Pi 4 too) ---
+    if not REAL_GPIO:
         try:
-            GPIO.setup(26, GPIO.OUT)
-            GPIO.cleanup(26)
+            import RPi.GPIO as _GPIO  # rpi-lgpio installs as RPi.GPIO
+            _GPIO.setmode(_GPIO.BCM)
+            _GPIO.setwarnings(False)
+            # Quick test — if this is the real lgpio-backed version it won't raise
+            _GPIO.setup(26, _GPIO.OUT)
+            _GPIO.output(26, _GPIO.LOW)
+            _GPIO.cleanup(26)
+            import RPi.GPIO as GPIO
+            GPIO.setwarnings(False)
+            REAL_GPIO = True
+            GPIO_BACKEND = "rpi-lgpio" if pi_ver == 5 else "RPi.GPIO"
+            print(f"[GPIO] ✓ Running on Raspberry Pi {pi_ver} — {GPIO_BACKEND} enabled")
         except RuntimeError as e:
-            if "SOC peripheral base address" in str(e):
-                raise RuntimeError("Incompatible RPi.GPIO (Pi 5 detected?)")
-            
-        REAL_GPIO = True
-        print("[GPIO] Running on Raspberry Pi — real GPIO enabled")
-    except (ImportError, RuntimeError) as e:
+            if "SOC peripheral base address" in str(e) or "RP1" in str(e):
+                print(f"[GPIO] RPi.GPIO incompatible with Pi 5 RP1 chip: {e}")
+            else:
+                print(f"[GPIO] RPi.GPIO RuntimeError: {e}")
+        except ImportError:
+            pass
+        except Exception as e:
+            print(f"[GPIO] RPi.GPIO init error: {e}")
+
+    # --- Try lgpio directly (Pi 5 native) ---
+    if not REAL_GPIO:
+        try:
+            import lgpio as _lgpio
+            # lgpio works differently — wrap it into RPi.GPIO-compatible interface
+            from hardware import lgpio_wrapper as GPIO
+            REAL_GPIO = True
+            GPIO_BACKEND = "lgpio"
+            print("[GPIO] ✓ Using lgpio backend (Pi 5 native)")
+        except ImportError:
+            pass
+        except Exception as e:
+            print(f"[GPIO] lgpio init error: {e}")
+
+    if not REAL_GPIO:
         from hardware import mock_gpio as GPIO
-        REAL_GPIO = False
-        print(f"[GPIO] RPi.GPIO not available or incompatible ({e}) — using mock")
+        print("[GPIO] ⚠ No compatible GPIO library found — using mock")
 else:
     from hardware import mock_gpio as GPIO
-    REAL_GPIO = False
-    print("[GPIO] Dev mode — using mock GPIO")
+    if not _is_raspberry_pi():
+        print("[GPIO] Dev mode (non-Pi system) — using mock GPIO")
+    else:
+        print("[GPIO] GPIO disabled via ENABLE_GPIO=false — using mock")
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Controller
+# ──────────────────────────────────────────────────────────────────────────────
 
 class GPIOController:
     def __init__(self, config_path="config/gpio_devices.json"):
@@ -73,21 +132,45 @@ class GPIOController:
 
     # ── GPIO setup ─────────────────────────────────────────────
     def _setup_gpio(self):
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
+        try:
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setwarnings(False)
+        except Exception as e:
+            print(f"[GPIO] setmode error: {e}")
+
+        # Track which pins we've already set up to avoid duplicate setup
+        _setup_pins = set()
         for d in self.devices.values():
-            self._setup_pin(d)
-        for led in self.status_leds.values():
-            GPIO.setup(led["pin"], GPIO.OUT, initial=GPIO.LOW)
+            pin = d["gpio_pin"]
+            if pin not in _setup_pins:
+                self._setup_pin(d)
+                _setup_pins.add(pin)
+
+        for led_name, led in self.status_leds.items():
+            pin = led["pin"]
+            if pin not in _setup_pins:
+                try:
+                    GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+                    print(f"[GPIO] Status LED '{led_name}' → pin {pin}")
+                    _setup_pins.add(pin)
+                except Exception as e:
+                    print(f"[GPIO] Status LED setup failed pin {pin}: {e}")
 
     def _setup_pin(self, device):
         pin = device["gpio_pin"]
-        GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+        try:
+            GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+            print(f"[GPIO] Pin {pin} → '{device['name']}' (OUTPUT)")
+        except Exception as e:
+            print(f"[GPIO] Pin {pin} setup error: {e}")
+            return
+
         if REAL_GPIO and device.get("dimmable"):
             try:
                 p = GPIO.PWM(pin, 1000)
                 p.start(0)
                 self._pwm[pin] = p
+                print(f"[GPIO] Pin {pin} PWM initialized")
             except Exception as e:
                 print(f"[GPIO] PWM init failed for pin {pin}: {e}")
 
@@ -96,10 +179,15 @@ class GPIOController:
         pin = device["gpio_pin"]
         state = device["state"]
         intensity = max(0, min(100, int(device.get("intensity", 100))))
-        if REAL_GPIO and pin in self._pwm:
-            self._pwm[pin].ChangeDutyCycle(intensity if state else 0)
-        else:
-            GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
+        try:
+            if REAL_GPIO and pin in self._pwm:
+                self._pwm[pin].ChangeDutyCycle(intensity if state else 0)
+                print(f"[GPIO] Pin {pin} PWM → {intensity if state else 0}%")
+            else:
+                GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
+                print(f"[GPIO] Pin {pin} → {'HIGH ✓' if state else 'LOW ✗'}")
+        except Exception as e:
+            print(f"[GPIO] Output error pin {pin}: {e}")
 
     # ── CRUD / control ─────────────────────────────────────────
     def set_device(self, device_id, state):
@@ -115,6 +203,8 @@ class GPIOController:
             "name": d["name"],
             "state": d["state"],
             "intensity": d.get("intensity", 100),
+            "gpio_pin": d["gpio_pin"],
+            "gpio_backend": GPIO_BACKEND,
             "message": f"{d['name']} turned {'ON' if state else 'OFF'}",
         }
 
@@ -249,17 +339,14 @@ class GPIOController:
         if not name:
             return None
         name_lower = name.lower().strip()
-        # exact id
         if name_lower in self.devices:
             return name_lower
-        # exact name / alias
         for did, d in self.devices.items():
             if d["name"].lower() == name_lower:
                 return did
             for alias in d.get("aliases", []):
                 if alias.lower() == name_lower:
                     return did
-        # partial
         best = None
         best_score = 0
         for did, d in self.devices.items():
@@ -292,10 +379,34 @@ class GPIOController:
     # ── status LEDs ────────────────────────────────────────────
     def set_status_led(self, led_name, state):
         if led_name in self.status_leds:
+            pin = self.status_leds[led_name]["pin"]
             try:
-                GPIO.output(self.status_leds[led_name]["pin"], GPIO.HIGH if state else GPIO.LOW)
+                GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
+            except Exception as e:
+                pass  # silent fail for status LEDs
+
+    def pulse_status_led(self, led_name, times=3, delay=0.1):
+        """Blink a status LED N times."""
+        import time
+        if led_name not in self.status_leds:
+            return
+        pin = self.status_leds[led_name]["pin"]
+        for _ in range(times):
+            try:
+                GPIO.output(pin, GPIO.HIGH)
+                time.sleep(delay)
+                GPIO.output(pin, GPIO.LOW)
+                time.sleep(delay)
             except Exception:
-                pass
+                break
+
+    # ── info ───────────────────────────────────────────────────
+    @staticmethod
+    def gpio_info():
+        return {
+            "backend": GPIO_BACKEND,
+            "real_gpio": REAL_GPIO,
+        }
 
     def cleanup(self):
         for p in self._pwm.values():
@@ -303,4 +414,8 @@ class GPIOController:
                 p.stop()
             except Exception:
                 pass
-        GPIO.cleanup()
+        try:
+            GPIO.cleanup()
+        except Exception:
+            pass
+        print("[GPIO] Cleanup done")

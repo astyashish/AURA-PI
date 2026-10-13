@@ -13,3 +13,7 @@ numpy>=1.26.4
 pydantic>=2.7.1
 aiofiles==23.2.1
 faster-whisper>=1.0.0
+# GPIO — installed separately by setup.sh based on Pi model:
+#   Pi 5: rpi-lgpio (pip install rpi-lgpio) + lgpio (pip install lgpio)
+#   Pi 4: RPi.GPIO (pip install RPi.GPIO)
+#   Windows/dev: mock GPIO (no install needed)

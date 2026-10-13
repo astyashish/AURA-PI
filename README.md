@@ -1,48 +1,94 @@
-# 🤖 AURA-PI — Local AI Assistant for Raspberry Pi
+# AURA-PI — Quick Start on Raspberry Pi
 
-A fully offline Aura-style AI assistant. Voice commands, text chat, image recognition, GPIO hardware control — all running locally using Ollama LLMs. No internet required after setup.
+## 100% Offline — No Internet Needed After Setup
 
-## Features
-- 🎤 Voice input (Vosk STT, offline)
-- 🔊 Voice output (Piper TTS, offline)
-- 🧠 Multiple local LLMs via Ollama (Gemma, Qwen, LLaVA)
-- 📷 Camera + image recognition (LLaVA vision model)
-- 💡 GPIO light/relay control via LLM commands
-- 🌐 Beautiful sci-fi web dashboard (Flask + SocketIO)
-- 💬 Text chat + voice chat both supported
-- 🔌 Works on Raspberry Pi 5 AND Windows/Linux (dev mode)
+---
 
-## Quick Start (Raspberry Pi)
+## First Time: Full Setup (needs internet once)
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/aura-pi.git
-cd aura-pi
-chmod +x setup.sh
-./setup.sh
-python main.py
+cd /home/ashish/AURA-PI
+chmod +x setup.sh scripts/*.sh
+bash setup.sh
 ```
 
-## Quick Start (Windows)
-```cmd
-git clone https://github.com/YOUR_USERNAME/aura-pi.git
-cd aura-pi
-setup_windows.bat
-python main.py
+Then pair earbuds:
+```bash
+bash scripts/setup_bluetooth.sh
 ```
 
-Then open: http://localhost:5000
+---
 
-## Hardware Required (for full GPIO features)
-- Raspberry Pi 5 (8GB RAM recommended)
-- USB Microphone
-- Speaker (3.5mm or USB)
-- LEDs + 220Ω resistors (or relay module for actual lights)
-- USB Webcam or Pi Camera Module
+## Every Day: Start AURA
 
-## GPIO Pin Layout
-| Device | GPIO Pin | Description |
-|--------|----------|-------------|
-| Living Room Light | GPIO 17 | LED/Relay |
-| Bedroom Light | GPIO 27 | LED/Relay |
-| Status LED (Blue) | GPIO 22 | Aura thinking indicator |
-| Status LED (Green) | GPIO 23 | Aura speaking indicator |
-| Camera LED | GPIO 24 | Camera active indicator |
+```bash
+cd /home/ashish/AURA-PI
+bash start.sh
+```
+
+Open browser: **http://localhost:5000**
+
+---
+
+## If Voice Not Working
+
+```bash
+bash scripts/fix_all.sh
+```
+
+This fixes:
+- ALSA → PipeWire audio routing
+- GPIO library for Pi 5 (lgpio)
+- PyAudio, Vosk, Whisper installs
+- Vosk model download
+
+---
+
+## Voice Commands
+
+Say **"AURA"** then:
+- "Turn on bedroom light"
+- "Turn off all lights"  
+- "Dim desk light to 50 percent"
+- "What time is it?"
+- "Tell me a joke"
+- Say **"goodbye"** to end conversation
+
+---
+
+## GPIO Pin Connections
+
+| BCM Pin | Connect To | Device |
+|---------|-----------|--------|
+| 17 | LED + resistor | Living Room Light |
+| 4 | LED + resistor | Living Room Lamp |
+| 27 | LED + resistor | Bedroom Light |
+| 18 | LED + resistor | Night Light |
+| 5 | LED + resistor | Desk Light |
+| 19 | LED + resistor | Kitchen Light |
+| 6 | Relay IN | Ceiling Fan |
+| 13 | Relay IN | Bedroom Fan |
+| 22 | Blue LED | Status: Thinking |
+| 23 | Green LED | Status: Speaking |
+| 24 | Red LED | Status: Camera |
+| GND | GND | Common Ground |
+
+Use **330Ω resistor** with each LED.
+
+---
+
+## Files Changed (This Session)
+
+| File | Fix |
+|------|-----|
+| `core/voice_input.py` | ALSA errors suppressed, mic probe before enable |
+| `core/voice_output.py` | BT sink auto-detect, paplay/aplay/pw-play fallback |
+| `core/conversation_agent.py` | Crash-safe loop, status LEDs, silence timeout |
+| `core/llm_engine.py` | Unchanged |
+| `hardware/gpio_controller.py` | Pi 5 lgpio support |
+| `hardware/lgpio_wrapper.py` | NEW: Pi 5 GPIO backend |
+| `main.py` | Auto-restart voice, BT/GPIO status on boot |
+| `start.sh` | PipeWire + BT + Ollama startup order |
+| `scripts/fix_all.sh` | NEW: One-shot fix for all issues |
+| `scripts/setup_bluetooth.sh` | Full BT pairing with auto-reconnect |
+| `setup.sh` | Pi 5 GPIO, PipeWire, systemd service |
